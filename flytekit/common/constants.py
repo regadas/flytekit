@@ -9,6 +9,7 @@ class SdkTaskType(object):
     DYNAMIC_TASK = "dynamic-task"
     CONTAINER_ARRAY_TASK = "container_array"
     SPARK_TASK = "spark"
+    FLINK_TASK = "flink"
 
     # Hive is multi-step operation:
     #    1. a generator task that generates hive-job to be executed by the operator. Generator task is called hive task

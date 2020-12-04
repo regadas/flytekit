@@ -5,6 +5,7 @@ import six as _six
 from flytekit.common import constants as _common_constants
 from flytekit.common.exceptions import user as _user_exceptions
 from flytekit.common.tasks import generic_spark_task as _sdk_generic_spark_task
+from flytekit.common.tasks import flink_task as _sdk_flink_task
 from flytekit.common.tasks import hive_task as _sdk_hive_tasks
 from flytekit.common.tasks import pytorch_task as _sdk_pytorch_tasks
 from flytekit.common.tasks import sdk_dynamic as _sdk_dynamic
@@ -44,8 +45,11 @@ def inputs(_task_template=None, **kwargs):
 
     def apply_inputs_wrapper(task):
         if not isinstance(task, _task.SdkTask):
-            additional_msg = "Inputs can only be applied to a task. Did you forget the task decorator on method '{}.{}'?".format(
-                task.__module__, task.__name__ if hasattr(task, "__name__") else "<unknown>",
+            additional_msg = (
+                "Inputs can only be applied to a task. Did you forget the task decorator on method '{}.{}'?".format(
+                    task.__module__,
+                    task.__name__ if hasattr(task, "__name__") else "<unknown>",
+                )
             )
             raise _user_exceptions.FlyteTypeException(
                 expected_type=_sdk_runnable_tasks.SdkRunnableTask,
@@ -94,8 +98,11 @@ def outputs(_task_template=None, **kwargs):
         if not isinstance(task, _sdk_runnable_tasks.SdkRunnableTask) and not isinstance(
             task, _nb_tasks.SdkNotebookTask
         ):
-            additional_msg = "Outputs can only be applied to a task. Did you forget the task decorator on method '{}.{}'?".format(
-                task.__module__, task.__name__ if hasattr(task, "__name__") else "<unknown>",
+            additional_msg = (
+                "Outputs can only be applied to a task. Did you forget the task decorator on method '{}.{}'?".format(
+                    task.__module__,
+                    task.__name__ if hasattr(task, "__name__") else "<unknown>",
+                )
             )
             raise _user_exceptions.FlyteTypeException(
                 expected_type=_sdk_runnable_tasks.SdkRunnableTask,
@@ -495,6 +502,37 @@ def spark_task(
         return wrapper(_task_function)
     else:
         return wrapper
+
+
+def flink_task(
+    main_class,
+    jar_file,
+    args=None,
+    cache_version="",
+    retries=0,
+    interruptible=None,
+    inputs=None,
+    deprecated="",
+    cache=False,
+    timeout=None,
+    flink_properties=None,
+    environment=None,
+):
+    return _sdk_flink_task.SdkGenericFlinkTask(
+        task_type=_common_constants.SdkTaskType.FLINK_TASK,
+        discovery_version=cache_version,
+        retries=retries,
+        interruptible=interruptible,
+        deprecated=deprecated,
+        discoverable=cache,
+        timeout=timeout or _datetime.timedelta(seconds=0),
+        task_inputs=inputs,
+        main_class=main_class or "",
+        jar_file=jar_file or "",
+        args=args or [],
+        flink_properties=flink_properties or {},
+        environment=environment or {},
+    )
 
 
 def generic_spark_task(

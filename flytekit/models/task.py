@@ -8,6 +8,7 @@ from flyteidl.core import literals_pb2 as _literals_pb2
 from flyteidl.core import tasks_pb2 as _core_task
 from flyteidl.plugins import pytorch_pb2 as _pytorch_task
 from flyteidl.plugins import spark_pb2 as _spark_task
+from flyteidl.plugins import flink_pb2 as _flink_task
 from flyteidl.plugins import tensorflow_pb2 as _tensorflow_task
 from google.protobuf import json_format as _json_format
 from google.protobuf import struct_pb2 as _struct
@@ -99,7 +100,8 @@ class Resources(_common.FlyteIdlEntity):
         :rtype: flyteidl.core.tasks_pb2.Resources
         """
         return _core_task.Resources(
-            requests=[r.to_flyte_idl() for r in self.requests], limits=[r.to_flyte_idl() for r in self.limits],
+            requests=[r.to_flyte_idl() for r in self.requests],
+            limits=[r.to_flyte_idl() for r in self.limits],
         )
 
     @classmethod
@@ -171,7 +173,14 @@ class RuntimeMetadata(_common.FlyteIdlEntity):
 
 class TaskMetadata(_common.FlyteIdlEntity):
     def __init__(
-        self, discoverable, runtime, timeout, retries, interruptible, discovery_version, deprecated_error_message,
+        self,
+        discoverable,
+        runtime,
+        timeout,
+        retries,
+        interruptible,
+        discovery_version,
+        deprecated_error_message,
     ):
         """
         Information needed at runtime to determine behavior such as whether or not outputs are discoverable, timeouts,
@@ -449,7 +458,10 @@ class Task(_common.FlyteIdlEntity):
         """
         :rtype: flyteidl.admin.task_pb2.Task
         """
-        return _admin_task.Task(closure=self.closure.to_flyte_idl(), id=self.id.to_flyte_idl(),)
+        return _admin_task.Task(
+            closure=self.closure.to_flyte_idl(),
+            id=self.id.to_flyte_idl(),
+        )
 
     @classmethod
     def from_flyte_idl(cls, pb2_object):
@@ -523,7 +535,13 @@ class CompiledTask(_common.FlyteIdlEntity):
 
 class SparkJob(_common.FlyteIdlEntity):
     def __init__(
-        self, spark_type, application_file, main_class, spark_conf, hadoop_conf, executor_path,
+        self,
+        spark_type,
+        application_file,
+        main_class,
+        spark_conf,
+        hadoop_conf,
+        executor_path,
     ):
         """
         This defines a SparkJob target.  It will execute the appropriate SparkJob.
@@ -646,12 +664,100 @@ class SparkJob(_common.FlyteIdlEntity):
             application_type = _spark_type.R
 
         return cls(
-            type=application_type,
+            spark_type=application_type,
             spark_conf=pb2_object.sparkConf,
             application_file=pb2_object.mainApplicationFile,
             main_class=pb2_object.mainClass,
             hadoop_conf=pb2_object.hadoopConf,
             executor_path=pb2_object.executorPath,
+        )
+
+
+class FlinkJob(_common.FlyteIdlEntity):
+    def __init__(
+        self,
+        jar_file,
+        main_class,
+        args,
+        flink_properties,
+    ):
+        """
+        This defines a FlinkJob target.  It will execute the appropriate FlinkJob.
+
+        :param application_file: The main application file to execute.
+        :param dict[Text, Text] flink_properties: A definition of key-value pairs for flink config for the job.
+        :param dict[Text, Text] hadoop_conf: A definition of key-value pairs for hadoop config for the job.
+        """
+        self._jar_file = jar_file
+        self._main_class = main_class
+        self._args = args
+        self._flink_properties = flink_properties
+
+    def with_overrides(self, new_flink_properties: typing.Dict[str, str] = None) -> "FlinkJob":
+        if not new_flink_properties:
+            new_flink_properties = self.flink_properties
+
+        return FlinkJob(
+            jar_file=self.jar_file,
+            main_class=self.main_class,
+            args=self.args,
+            flink_properties=new_flink_properties,
+        )
+
+    @property
+    def main_class(self):
+        """
+        The main class to execute
+        :rtype: Text
+        """
+        return self._main_class
+
+    @property
+    def jar_file(self):
+        """
+        The main application file to execute
+        :rtype: Text
+        """
+        return self._jar_file
+
+    @property
+    def args(self):
+        """
+        The main application file to execute
+        :rtype: Text
+        """
+        return self._args
+
+    @property
+    def flink_properties(self):
+        """
+        A definition of key-value pairs for flink config for the job.
+         :rtype: dict[Text, Text]
+        """
+        return self._flink_properties
+
+    def to_flyte_idl(self):
+        """
+        :rtype: flyteidl.plugins.flink_pb2.FlinkJob
+        """
+        return _flink_task.FlinkJob(
+            jarFile=self.jar_file,
+            mainClass=self.main_class,
+            args=self.args,
+            flinkProperties=self.flink_properties,
+        )
+
+    @classmethod
+    def from_flyte_idl(cls, pb2_object):
+        """
+        :param flyteidl.plugins.spark_pb2.SparkJob pb2_object:
+        :rtype: SparkJob
+        """
+        return cls(
+            flink_properties=pb2_object.flinkProperties,
+            jar_file=pb2_object.jarFile,
+            main_class=pb2_object.mainClass,
+            args=pb2_object.args,
         )
 
 
@@ -683,7 +789,10 @@ class IOStrategy(_common.FlyteIdlEntity):
     def from_flyte_idl(cls, pb2_object: _core_task.IOStrategy):
         if pb2_object is None:
             return None
-        return cls(download_mode=pb2_object.download_mode, upload_mode=pb2_object.upload_mode,)
+        return cls(
+            download_mode=pb2_object.download_mode,
+            upload_mode=pb2_object.upload_mode,
+        )
 
 
 class DataLoadingConfig(_common.FlyteIdlEntity):
@@ -884,7 +993,10 @@ class SidecarJob(_common.FlyteIdlEntity):
         :param flyteidl.admin.task_pb2.Task pb2_object:
         :rtype: Container
         """
-        return cls(pod_spec=pb2_object.pod_spec, primary_container_name=pb2_object.primary_container_name,)
+        return cls(
+            pod_spec=pb2_object.pod_spec,
+            primary_container_name=pb2_object.primary_container_name,
+        )
 
 
 class PyTorchJob(_common.FlyteIdlEntity):
@@ -896,11 +1008,15 @@ class PyTorchJob(_common.FlyteIdlEntity):
         return self._workers_count
 
     def to_flyte_idl(self):
-        return _pytorch_task.DistributedPyTorchTrainingTask(workers=self.workers_count,)
+        return _pytorch_task.DistributedPyTorchTrainingTask(
+            workers=self.workers_count,
+        )
 
     @classmethod
     def from_flyte_idl(cls, pb2_object):
-        return cls(workers_count=pb2_object.workers,)
+        return cls(
+            workers_count=pb2_object.workers,
+        )
 
 
 class TensorFlowJob(_common.FlyteIdlEntity):
